@@ -2,15 +2,19 @@ program test
   use m_lookup_table
   implicit none
 
-  integer, parameter :: dp = kind(0.0d0)
-  integer            :: i, cntr, table_size
-  integer, parameter :: test_size = 1000*1000, min_table_size = 10
-  type(lookup_table_t)   :: lkp_tbl
+  integer, parameter   :: dp             = kind(0.0d0)
+  integer, parameter   :: test_size      = 1000*1000
+  integer, parameter   :: min_table_size = 10
 
-  real(dp)           :: x_values(test_size), y_values(test_size), y2_values(2, test_size)
-  real(dp)           :: lkp_results(test_size), lkp2_results(2, test_size)
-  real(dp)           :: max_diff
-  real(dp)           :: total_time, time_t1, time_t2
+  integer              :: i, cntr, table_size
+  type(lookup_table_t) :: lkp_tbl
+  real(dp)             :: x_values(test_size)
+  real(dp)             :: y_values(test_size)
+  real(dp)             :: y2_values(2, test_size)
+  real(dp)             :: lkp_results(test_size)
+  real(dp)             :: lkp2_results(2, test_size)
+  real(dp)             :: max_diff
+  real(dp)             :: total_time, time_t1, time_t2
 
   print *, 'start test_lookup_table'
 
@@ -53,8 +57,10 @@ program test
 
   print *, "You should see 2nd order convergence"
   print *, "Number of lookups performed:", cntr * test_size
-  print *, "Number of lookups / second:", (cntr * test_size) / (total_time + epsilon(1.0_dp))
-  print *, "Nanosecond per lookup:", 1e9_dp * total_time / (cntr * test_size)
+  print *, "Number of lookups / second:", &
+       (cntr * test_size) / (total_time + epsilon(1.0_dp))
+  print *, "Nanosecond per lookup:", &
+       1e9_dp * total_time / (cntr * test_size)
   print *, ""
 
   print *, ""
@@ -92,8 +98,10 @@ program test
 
   print *, "You should see 2nd order convergence"
   print *, "Number of lookups performed:", cntr * test_size
-  print *, "Number of lookups / second:", (cntr * test_size) / (total_time + epsilon(1.0_dp))
-  print *, "Nanosecond per lookup:", 1e9_dp * total_time / (cntr * test_size)
+  print *, "Number of lookups / second:", &
+       (cntr * test_size) / (total_time + epsilon(1.0_dp))
+  print *, "Nanosecond per lookup:", &
+       1e9_dp * total_time / (cntr * test_size)
   print *, ""
 
 end program test
