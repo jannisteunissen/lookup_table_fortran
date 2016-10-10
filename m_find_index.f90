@@ -16,8 +16,9 @@ contains
   !> Linear search of sorted list for the smallest ix such that list(ix) >= val.
   !> On failure, returns size(list)+1
   function find_index_linear(list, val) result(ix)
-    real(dp), intent(in) :: list(:), val
-    integer :: ix
+    real(dp), intent(in) :: list(:) !< Sorted list
+    real(dp), intent(in) :: val     !< Value to search for
+    integer              :: ix
 
     do ix = 1, size(list)
        if (list(ix) >= val) exit
@@ -27,8 +28,8 @@ contains
   !> Binary search of sorted list for the smallest ix such that list(ix) >= val.
   !> On failure, returns size(list)+1
   function find_index_bsearch(list, val) result(ix)
-    real(dp), intent(in) :: list(:)
-    real(dp), intent(in) :: val
+    real(dp), intent(in) :: list(:) !< Sorted list
+    real(dp), intent(in) :: val     !< Value to search for
     integer              :: ix, i_min, i_max, i_middle
 
     i_min = 1
@@ -52,8 +53,8 @@ contains
   !> for the smallest ix such that list(ix) >= val. On failure, returns
   !> size(list)+1
   function find_index_adaptive(list, val) result(ix)
-    real(dp), intent(in) :: list(:)
-    real(dp), intent(in) :: val
+    real(dp), intent(in) :: list(:) !< Sorted list
+    real(dp), intent(in) :: val     !< Value to search for
     integer              :: ix
     integer, parameter   :: binary_search_limit = 40
 
