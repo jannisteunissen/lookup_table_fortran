@@ -20,7 +20,7 @@ module m_lookup_table
      real(dp) :: dx     !< The x-spacing in the lookup coordinate
      real(dp) :: inv_dx !< The inverse x-spacing
 
-     !The table is stored in two ways, to speed up different types of lookups.
+     ! The table is stored in two ways, to speed up different types of lookups.
      real(dp), allocatable :: cols_rows(:, :) !< The table in column-major order
      real(dp), allocatable :: rows_cols(:, :) !< The table in row-major order
   end type lookup_table_t
@@ -39,23 +39,23 @@ module m_lookup_table
   public :: LT_loc_t
 
   ! Public methods
-  public :: LT_create
-  public :: LT_get_xdata
-  public :: LT_get_spaced_data
-  public :: LT_set_col
-  public :: LT_add_to_col
-  public :: LT_add_col
-  public :: LT_get_loc
-  public :: LT_get_col
-  public :: LT_get_mcol
-  public :: LT_get_col_at_loc
-  public :: LT_get_mcol_at_loc
+  public :: LT_create           ! Create a new lookup table
+  public :: LT_get_xdata        ! Get the x-values of a table
+  public :: LT_get_spaced_data  ! Convert values to regularly spaced
+  public :: LT_set_col          ! Set one table column
+  public :: LT_add_to_col       ! Add to a table column
+  public :: LT_add_col          ! Add a column
+  public :: LT_get_loc          ! Get the index (row) of a value
+  public :: LT_get_col          ! Interpolate one column
+  public :: LT_get_mcol         ! Interpolate multiple columns
+  public :: LT_get_col_at_loc   ! Get one column at location
+  public :: LT_get_mcol_at_loc  ! Get multiple columns at location
   public :: LT_get_num_rows
   public :: LT_get_num_cols
-  public :: LT_get_data
-  public :: LT_lin_interp_list
-  public :: LT_to_file
-  public :: LT_from_file
+  public :: LT_get_data         ! Get all the data of the table
+  public :: LT_lin_interp_list  ! Linearly interpolate a list
+  public :: LT_to_file          ! Store lookup table in file
+  public :: LT_from_file        ! Restore lookup table from file
 
 contains
 
