@@ -13,7 +13,6 @@ module m_lookup_table
   !> The lookup table type. There can be one or more columns, for which values
   !> can be looked up for a given 'x-coordinate'.
   type lookup_table_t
-     private
      integer  :: n_rows !< The number of rows
      integer  :: n_cols !< The number of columns
      real(dp) :: x_min  !< The minimum lookup coordinate
