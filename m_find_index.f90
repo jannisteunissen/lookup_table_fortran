@@ -36,9 +36,10 @@ contains
     i_max = size(list)
 
     do while (i_min < i_max)
-       i_middle = i_min + (i_max - i_min) / 2
+       ! This safely performs: i_middle = (i_max + i_min) / 2
+       i_middle = i_min + ishft(i_max - i_min, -1)
 
-       if (val <= list(i_middle)) then
+       if (list(i_middle) >= val) then
           i_max = i_middle
        else
           i_min = i_middle + 1
