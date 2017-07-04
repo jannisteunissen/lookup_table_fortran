@@ -27,7 +27,7 @@ program test
 
   print *, "Testing m_lookup_table.f90 implementation..."
   print *, ""
-  print *, " *** Vectorized calls (one call for all the data) ***"
+  print *, " *** Get one column with LT_get_col ***"
   print *, "Iteration    table_size   max. difference"
 
   table_size = min_table_size
@@ -65,7 +65,7 @@ program test
 
   print *, ""
   print *, "Testing multiple column mode (2 columns)"
-  print *, " *** Vectorized calls (one call for all the data) ***"
+  print *, " *** Get all columns with LT_get_mcol ***"
   print *, "Iteration    table_size   max. difference"
 
   table_size = min_table_size
