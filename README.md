@@ -1,11 +1,8 @@
 # Lookup table
 
-A [lookup table](https://en.wikipedia.org/wiki/Lookup_table)
-is an array that replaces runtime computation with a simpler array indexing operation.
-The savings in terms of processing time can be significant, since retrieving
-a value from memory is often faster than doing an expensive computation.
-
-A good way to understand the usage of this module is to run:
+A [lookup table](https://en.wikipedia.org/wiki/Lookup_table) is an array that
+can replace an expensive computation with a linear interpolation. A good way to
+understand the usage of this module is to run:
 
     make
     ./usage_example
@@ -108,15 +105,12 @@ The following public functions and subroutines are presented in module
     public :: LT_get_xdata        ! Get the x-values of a table
     public :: LT_get_spaced_data  ! Convert values to regularly spaced
     public :: LT_set_col          ! Set one table column
-    public :: LT_add_to_col       ! Add to a table column
     public :: LT_add_col          ! Add a column
     public :: LT_get_loc          ! Get the index (row) of a value
     public :: LT_get_col          ! Interpolate one column
     public :: LT_get_mcol         ! Interpolate multiple columns
     public :: LT_get_col_at_loc   ! Get one column at location
     public :: LT_get_mcol_at_loc  ! Get multiple columns at location
-    public :: LT_get_num_rows
-    public :: LT_get_num_cols
     public :: LT_get_data         ! Get all the data of the table
     public :: LT_lin_interp_list  ! Linearly interpolate a list
     public :: LT_to_file          ! Store lookup table in file

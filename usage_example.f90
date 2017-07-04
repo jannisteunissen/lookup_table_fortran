@@ -30,9 +30,6 @@ program usage_example
   print *, "Adding a third column (which causes re-allocations),"
   print *, "which is set to y3 = sqrt(x)"
   call LT_add_col(my_lt, x_data, sqrt(x_data))
-
-  print *, "Adding to y3, by setting y3 = y3 + x"
-  call LT_add_to_col(my_lt, 3, x_data, x_data)
   print *, ""
 
   call example_1(my_lt)
