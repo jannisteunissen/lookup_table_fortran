@@ -13,6 +13,7 @@ clean:
 
 # Dependency information
 $(TESTS): m_lookup_table.o m_find_index.o
+$(TESTS:%=%.o): m_lookup_table.o m_find_index.o
 m_lookup_table.o: m_find_index.o
 
 # How to get .o object files from .f90 source files
