@@ -124,6 +124,14 @@ An example how to add data is shown in the test programs
 * `test_find_index_performance`
 * `test_find_index_simple`
 
+## Contributors
+
+* [Jannis Teunissen](http://teunissen.net/): Main author, supported
+  by [STW](http://www.stw.nl/) while working at [CWI](https://www.cwi.nl/) and
+  now by [FWO](http://www.fwo.be/) while working
+  at [KU Leuven](https://wis.kuleuven.be/CmPA).
+* [Margreet Nool](https://www.cwi.nl/people/211): Documentation
+
 ## TODO
 
 * Add option to use `ifort` compiler in `Makefile`
