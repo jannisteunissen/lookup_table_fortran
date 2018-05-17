@@ -1,5 +1,5 @@
 program test
-  use m_lookup_table_2d
+  use m_lookup_table
   implicit none
 
   integer, parameter :: dp          = kind(0.0d0)

@@ -1,8 +1,7 @@
-!> A Fortran 90 module for creating lookup tables. These tables can be used to
-!> efficiently interpolate one or more values.
+!> A Fortran 90 module for creating 1D and 2D lookup tables. These tables can be
+!> used to efficiently interpolate one or more values.
 !>
 !> Author: Jannis Teunissen
-
 module m_lookup_table
   implicit none
   private
@@ -10,9 +9,11 @@ module m_lookup_table
   ! The precision of the real numbers used in the tables
   integer, parameter :: dp = kind(1.0d0)
 
+  ! ** 1D lookup tables **
+
   !> The lookup table type. There can be one or more columns, for which values
   !> can be looked up for a given 'x-coordinate'.
-  type lookup_table_t
+  type LT_t
      integer  :: n_rows !< The number of rows
      integer  :: n_cols !< The number of columns
      real(dp) :: x_min  !< The minimum lookup coordinate
@@ -22,7 +23,7 @@ module m_lookup_table
      ! The table is stored in two ways, to speed up different types of lookups.
      real(dp), allocatable :: cols_rows(:, :) !< The table in column-major order
      real(dp), allocatable :: rows_cols(:, :) !< The table in row-major order
-  end type lookup_table_t
+  end type LT_t
 
   !> Type to indicate a location in the lookup table, which can be used to speed
   !> up multiple lookups of different columns.
@@ -34,7 +35,7 @@ module m_lookup_table
   end type LT_loc_t
 
   ! Public types
-  public :: lookup_table_t
+  public :: LT_t
   public :: LT_loc_t
 
   ! Public methods
@@ -53,15 +54,53 @@ module m_lookup_table
   public :: LT_to_file          ! Store lookup table in file
   public :: LT_from_file        ! Restore lookup table from file
 
+  ! ** 2D lookup tables **
+
+  !> The lookup table type. There can be one or more columns, for which values
+  !> can be looked up for a given (x1, x2) coordinate
+  type LT2_t
+     integer               :: table_size(2) !< The size of the table
+     integer               :: n_cols        !< The number of columns/variables
+     real(dp)              :: x_min(2)      !< The minimum lookup coordinate
+     real(dp)              :: dx(2)         !< The x-spacing in the lookup coordinate
+     real(dp)              :: inv_dx(2)     !< The inverse x-spacing
+     real(dp), allocatable :: x1_data(:)    !< List of x1 coordinates
+     real(dp), allocatable :: x2_data(:)    !< List of x2 coordinates
+
+     real(dp), allocatable :: rows_cols(:, :, :)
+  end type LT2_t
+
+  !> Type to indicate a location in the lookup table, which can be used to speed
+  !> up multiple lookups of different columns.
+  type LT2_loc_t
+     private
+     !> The x-value lies between low_ix and low_ix+1
+     integer  :: low_ix(2)
+     !> The distance from low_ix (up to low_ix+1), given as a real number
+     !> between 0 and 1.
+     real(dp) :: low_frac(2)
+  end type LT2_loc_t
+
+  ! Public types
+  public :: LT2_t
+  public :: LT2_loc_t
+
+  ! Public methods
+  public :: LT2_create           ! Create a new lookup table
+  public :: LT2_set_col          ! Set one table column
+  public :: LT2_get_loc          ! Get the index (row) of a value
+  public :: LT2_get_col          ! Interpolate one column
+  public :: LT2_get_col_at_loc   ! Get one column at location
+
 contains
 
   !> This function returns a new lookup table
   function LT_create(x_min, x_max, n_rows, n_cols) result(my_lt)
-    real(dp), intent(in) :: x_min !< Minimum x-coordinate
-    real(dp), intent(in) :: x_max !< Maximum x-coordinate
+    real(dp), intent(in) :: x_min  !< Minimum x-coordinate
+    real(dp), intent(in) :: x_max  !< Maximum x-coordinate
     integer, intent(in)  :: n_rows !< How many x-values to store
     integer, intent(in)  :: n_cols !< Number of variables that will be looked up
-    type(lookup_table_t) :: my_lt
+    type(LT_t)           :: my_lt
 
     if (x_max <= x_min) stop "set_xdata: x_max should be > x_min"
     if (n_rows <= 1)    stop "set_xdata: n_rows should be bigger than 1"
@@ -80,9 +119,9 @@ contains
 
   !> Returns the x-coordinates of the lookup table
   pure function LT_get_xdata(my_lt) result(xdata)
-    type(lookup_table_t), intent(in) :: my_lt
-    real(dp)                    :: xdata(my_lt%n_rows)
-    integer                     :: ix
+    type(LT_t), intent(in) :: my_lt
+    real(dp)               :: xdata(my_lt%n_rows)
+    integer                :: ix
 
     do ix = 1, my_lt%n_rows
        xdata(ix) = my_lt%x_min + (ix-1) * my_lt%dx
@@ -102,9 +141,9 @@ contains
   !> Fill the column with index col_ix using the linearly interpolated (x, y)
   !> data
   pure subroutine LT_set_col(my_lt, col_ix, x, y)
-    type(lookup_table_t), intent(inout) :: my_lt
-    integer, intent(in)                 :: col_ix
-    real(dp), intent(in)                :: x(:), y(:)
+    type(LT_t), intent(inout) :: my_lt
+    integer, intent(in)       :: col_ix
+    real(dp), intent(in)      :: x(:), y(:)
     my_lt%cols_rows(col_ix, :) = &
          LT_get_spaced_data(x, y, LT_get_xdata(my_lt))
     my_lt%rows_cols(:, col_ix) = my_lt%cols_rows(col_ix, :)
@@ -112,9 +151,9 @@ contains
 
   !> Add a new column by linearly interpolating the (x, y) data
   pure subroutine LT_add_col(my_lt, x, y)
-    type(lookup_table_t), intent(inout) :: my_lt
-    real(dp), intent(in)                :: x(:), y(:)
-    type(lookup_table_t)                :: temp_lt
+    type(LT_t), intent(inout) :: my_lt
+    real(dp), intent(in)      :: x(:), y(:)
+    type(LT_t)                :: temp_lt
 
     temp_lt = my_lt
     deallocate(my_lt%cols_rows)
@@ -130,10 +169,10 @@ contains
 
   !> Get a location in the lookup table
   elemental function LT_get_loc(my_lt, x) result(my_loc)
-    type(lookup_table_t), intent(in) :: my_lt
-    real(dp), intent(in)             :: x
-    type(LT_loc_t)                   :: my_loc
-    real(dp)                         :: frac
+    type(LT_t), intent(in) :: my_lt
+    real(dp), intent(in)   :: x
+    type(LT_loc_t)         :: my_loc
+    real(dp)               :: frac
 
     frac            = (x - my_lt%x_min) * my_lt%inv_dx
     my_loc%low_ix   = ceiling(frac)
@@ -151,10 +190,10 @@ contains
 
   !> Get the values of all columns at x
   pure function LT_get_mcol(my_lt, x) result(col_values)
-    type(lookup_table_t), intent(in) :: my_lt
-    real(dp), intent(in)             :: x
-    real(dp)                         :: col_values(my_lt%n_cols)
-    type(LT_loc_t)                   :: loc
+    type(LT_t), intent(in) :: my_lt
+    real(dp), intent(in)   :: x
+    real(dp)               :: col_values(my_lt%n_cols)
+    type(LT_loc_t)         :: loc
 
     loc        = LT_get_loc(my_lt, x)
     col_values = LT_get_mcol_at_loc(my_lt, loc)
@@ -162,11 +201,11 @@ contains
 
   !> Get the value of a single column at x
   elemental function LT_get_col(my_lt, col_ix, x) result(col_value)
-    type(lookup_table_t), intent(in) :: my_lt
-    integer, intent(in)         :: col_ix
-    real(dp), intent(in)        :: x
-    real(dp)                    :: col_value
-    type(LT_loc_t)              :: loc
+    type(LT_t), intent(in) :: my_lt
+    integer, intent(in)    :: col_ix
+    real(dp), intent(in)   :: x
+    real(dp)               :: col_value
+    type(LT_loc_t)         :: loc
 
     loc       = LT_get_loc(my_lt, x)
     col_value = LT_get_col_at_loc(my_lt, col_ix, loc)
@@ -174,9 +213,9 @@ contains
 
   !> Get the values of all columns at a location
   pure function LT_get_mcol_at_loc(my_lt, loc) result(col_values)
-    type(lookup_table_t), intent(in) :: my_lt
-    type(LT_loc_t), intent(in)       :: loc
-    real(dp)                         :: col_values(my_lt%n_cols)
+    type(LT_t), intent(in)     :: my_lt
+    type(LT_loc_t), intent(in) :: loc
+    real(dp)                   :: col_values(my_lt%n_cols)
 
     col_values = loc%low_frac * my_lt%cols_rows(:, loc%low_ix) + &
          (1-loc%low_frac) * my_lt%cols_rows(:, loc%low_ix+1)
@@ -184,10 +223,10 @@ contains
 
   !> Get the value of a single column at a location
   elemental function LT_get_col_at_loc(my_lt, col_ix, loc) result(col_value)
-    type(lookup_table_t), intent(in) :: my_lt
-    integer, intent(in)              :: col_ix
-    type(LT_loc_t), intent(in)       :: loc
-    real(dp)                         :: col_value
+    type(LT_t), intent(in)     :: my_lt
+    integer, intent(in)        :: col_ix
+    type(LT_loc_t), intent(in) :: loc
+    real(dp)                   :: col_value
 
     col_value = loc%low_frac * my_lt%rows_cols(loc%low_ix, col_ix) + &
          (1-loc%low_frac) * my_lt%rows_cols(loc%low_ix+1, col_ix)
@@ -195,8 +234,8 @@ contains
 
   !> Get the x-coordinates and the columns of the lookup table
   pure subroutine LT_get_data(my_lt, x_data, cols_rows)
-    type(lookup_table_t), intent(in) :: my_lt
-    real(dp), intent(out)            :: x_data(:), cols_rows(:, :)
+    type(LT_t), intent(in) :: my_lt
+    real(dp), intent(out)  :: x_data(:), cols_rows(:, :)
 
     x_data    = LT_get_xdata(my_lt)
     cols_rows = my_lt%cols_rows
@@ -233,7 +272,7 @@ contains
 
   !> Write the lookup table to file (in binary, potentially unportable)
   subroutine LT_to_file(my_lt, filename)
-    type(lookup_table_t), intent(in) :: my_lt
+    type(LT_t), intent(in)       :: my_lt
     character(len=*), intent(in) :: filename
     integer                      :: my_unit
 
@@ -247,9 +286,9 @@ contains
 
   !> Read the lookup table from file (in binary, potentially unportable)
   subroutine LT_from_file(my_lt, filename)
-    type(lookup_table_t), intent(inout) :: my_lt
-    character(len=*), intent(in)    :: filename
-    integer                         :: my_unit
+    type(LT_t), intent(inout)    :: my_lt
+    character(len=*), intent(in) :: filename
+    integer                      :: my_unit
 
     open(newunit=my_unit, file=trim(filename), form='UNFORMATTED', &
          access='STREAM', status='OLD')
@@ -264,5 +303,117 @@ contains
 
     close(my_unit)
   end subroutine LT_from_file
+
+  ! Methods for 2D lookup tables
+
+  !> This function returns a new lookup table
+  function LT2_create(x_min, x_max, table_size, n_cols) result(my_lt)
+    real(dp), intent(in) :: x_min(2) !< Minimum coordinate
+    real(dp), intent(in) :: x_max(2) !< Maximum coordinate
+    integer, intent(in)  :: table_size(2) !< How many values to store
+    integer, intent(in)  :: n_cols !< Number of variables that will be looked up
+    integer :: ix
+    type(LT2_t) :: my_lt
+
+    if (any(x_max <= x_min)) stop "LT2_create error: x_max <= x_min"
+    if (any(table_size <= 1)) stop "LT2_create error: table_size <= 1"
+
+    my_lt%table_size = table_size
+    my_lt%x_min  = x_min
+    my_lt%dx     = (x_max - x_min) / (table_size - 1)
+    my_lt%inv_dx = 1 / my_lt%dx
+
+    allocate(my_lt%x1_data(table_size(1)))
+    allocate(my_lt%x2_data(table_size(2)))
+
+    do ix = 1, table_size(1)
+       my_lt%x1_data(ix) = x_min(1) + (ix-1) * my_lt%dx(1)
+    end do
+
+    do ix = 1, table_size(2)
+       my_lt%x2_data(ix) = x_min(2) + (ix-1) * my_lt%dx(2)
+    end do
+
+    allocate(my_lt%rows_cols(table_size(1), table_size(2), n_cols))
+    my_lt%rows_cols = 0
+    my_lt%n_cols    = n_cols
+  end function LT2_create
+
+  !> Fill the column with index col_ix using linearly interpolated data
+  pure subroutine LT2_set_col(my_lt, col_ix, x1, x2, y)
+    type(LT2_t), intent(inout) :: my_lt
+    integer, intent(in)                 :: col_ix
+    real(dp), intent(in)                :: x1(:), x2(:), y(:, :)
+    real(dp), allocatable :: tmp(:, :)
+    integer :: ix
+
+    allocate(tmp(my_lt%table_size(1), size(x2)))
+
+    ! Interpolate along first coordinate
+    do ix = 1, size(x2)
+       tmp(:, ix) = LT_get_spaced_data(x1, y(:, ix), my_lt%x1_data)
+    end do
+
+    ! Interpolate along second coordinate
+    do ix = 1, my_lt%table_size(1)
+       my_lt%rows_cols(ix, :, col_ix) = &
+            LT_get_spaced_data(x2, tmp(ix, :), my_lt%x2_data)
+    end do
+  end subroutine LT2_set_col
+
+  !> Get a location in the lookup table
+  pure function LT2_get_loc(my_lt, x) result(my_loc)
+    type(LT2_t), intent(in) :: my_lt
+    real(dp), intent(in)             :: x(2)
+    type(LT2_loc_t)                   :: my_loc
+    real(dp)                         :: frac(2)
+
+    frac            = (x - my_lt%x_min) * my_lt%inv_dx
+    my_loc%low_ix   = ceiling(frac)
+    my_loc%low_frac = my_loc%low_ix - frac
+
+    ! Check bounds
+    where (my_loc%low_ix < 1)
+       my_loc%low_ix   = 1
+       my_loc%low_frac = 1
+    end where
+
+    where (my_loc%low_ix >= my_lt%table_size)
+       my_loc%low_ix   = my_lt%table_size - 1
+       my_loc%low_frac = 0
+    end where
+  end function LT2_get_loc
+
+  !> Get the value of a single column at x
+  pure function LT2_get_col(my_lt, col_ix, x) result(col_value)
+    type(LT2_t), intent(in) :: my_lt
+    integer, intent(in)         :: col_ix
+    real(dp), intent(in)        :: x(2)
+    real(dp)                    :: col_value
+    type(LT2_loc_t)              :: loc
+
+    loc       = LT2_get_loc(my_lt, x)
+    col_value = LT2_get_col_at_loc(my_lt, col_ix, loc)
+  end function LT2_get_col
+
+  !> Get the value of a single column at a location
+  pure function LT2_get_col_at_loc(my_lt, col_ix, loc) result(col_value)
+    type(LT2_t), intent(in) :: my_lt
+    integer, intent(in)              :: col_ix
+    type(LT2_loc_t), intent(in)       :: loc
+    integer :: ix(2)
+    real(dp)                         :: w(2, 2)
+    real(dp)                         :: col_value
+
+    ! Bilinear interpolation
+    w(1, 1) = loc%low_frac(1) * loc%low_frac(2)
+    w(2, 1) = (1 - loc%low_frac(1)) * loc%low_frac(2)
+    w(1, 2) = loc%low_frac(1) * (1 - loc%low_frac(2))
+    w(2, 2) = (1 - loc%low_frac(1)) * (1 - loc%low_frac(2))
+    ix = loc%low_ix
+
+    col_value = sum(w * my_lt%rows_cols(ix(1):ix(1)+1, &
+         ix(2):ix(2)+1, col_ix))
+  end function LT2_get_col_at_loc
 
 end module m_lookup_table
