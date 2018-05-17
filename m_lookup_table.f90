@@ -9,6 +9,11 @@ module m_lookup_table
   ! The precision of the real numbers used in the tables
   integer, parameter :: dp = kind(1.0d0)
 
+  ! ** Routines for finding indices in sorted lists **
+  public :: find_index_linear
+  public :: find_index_bsearch
+  public :: find_index_adaptive
+
   ! ** 1D lookup tables **
 
   !> The lookup table type. There can be one or more columns, for which values
@@ -93,6 +98,63 @@ module m_lookup_table
   public :: LT2_get_col_at_loc   ! Get one column at location
 
 contains
+
+  ! ** Routines for finding indices **
+
+  !> Linear search of sorted list for the smallest ix such that list(ix) >= val.
+  !> On failure, returns size(list)+1
+  pure function find_index_linear(list, val) result(ix)
+    real(dp), intent(in) :: list(:) !< Sorted list
+    real(dp), intent(in) :: val     !< Value to search for
+    integer              :: ix
+
+    do ix = 1, size(list)
+       if (list(ix) >= val) exit
+    end do
+  end function find_index_linear
+
+  !> Binary search of sorted list for the smallest ix such that list(ix) >= val.
+  !> On failure, returns size(list)+1
+  pure function find_index_bsearch(list, val) result(ix)
+    real(dp), intent(in) :: list(:) !< Sorted list
+    real(dp), intent(in) :: val     !< Value to search for
+    integer              :: ix, i_min, i_max, i_middle
+
+    i_min = 1
+    i_max = size(list)
+
+    do while (i_min < i_max)
+       ! This safely performs: i_middle = (i_max + i_min) / 2
+       i_middle = i_min + ishft(i_max - i_min, -1)
+
+       if (list(i_middle) >= val) then
+          i_max = i_middle
+       else
+          i_min = i_middle + 1
+       end if
+    end do
+
+    ix = i_min
+    if (val > list(ix)) ix = size(list) + 1
+  end function find_index_bsearch
+
+  !> Adaptive search (combination of linear and binary search) of sorted list
+  !> for the smallest ix such that list(ix) >= val. On failure, returns
+  !> size(list)+1
+  pure function find_index_adaptive(list, val) result(ix)
+    real(dp), intent(in) :: list(:) !< Sorted list
+    real(dp), intent(in) :: val     !< Value to search for
+    integer              :: ix
+    integer, parameter   :: binary_search_limit = 40
+
+    if (size(list) < binary_search_limit) then
+       ix = find_index_linear(list, val)
+    else
+       ix = find_index_bsearch(list, val)
+    end if
+  end function find_index_adaptive
+
+  ! ** 1D lookup table routines **
 
   !> This function returns a new lookup table
   function LT_create(x_min, x_max, n_rows, n_cols) result(my_lt)
@@ -248,7 +310,6 @@ contains
   ! if x_value is right of domain D,
   ! then the value becomes the value at the rigth side of D
   pure subroutine LT_lin_interp_list(x_list, y_list, x_value, y_value)
-    use m_find_index
     real(dp), intent(in)  :: x_list(:), y_list(:)
     real(dp), intent(in)  :: x_value
     real(dp), intent(out) :: y_value
@@ -304,7 +365,7 @@ contains
     close(my_unit)
   end subroutine LT_from_file
 
-  ! Methods for 2D lookup tables
+  ! ** 2D lookup table routines **
 
   !> This function returns a new lookup table
   function LT2_create(x_min, x_max, table_size, n_cols) result(my_lt)
