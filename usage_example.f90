@@ -11,11 +11,11 @@ program usage_example
   print *, ""
 
   print *, "Create a lookup table with the following options"
-  print *, "   x_min  = ", x_data(1)
-  print *, "   x_max  = ", x_data(4)
-  print *, "   n_rows = ", 20
-  print *, "   n_cols = ", 2
-  my_lt = LT_create(x_data(1), x_data(4), n_rows=20, n_cols=2)
+  print *, "   x_min    = ", x_data(1)
+  print *, "   x_max    = ", x_data(4)
+  print *, "   n_points = ", 20
+  print *, "   n_cols   = ", 2
+  my_lt = LT_create(x_data(1), x_data(4), n_points=20, n_cols=2)
 
   print *, "The table input is unevenly spaced, using these x-values:"
   write(*, "(4e12.4)") x_data
