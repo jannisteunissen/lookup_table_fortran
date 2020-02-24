@@ -101,7 +101,7 @@ module m_lookup_table
   public :: LT_to_file          ! Store lookup table in file
   public :: LT_from_file        ! Restore lookup table from file
 
-  ! Public methods
+  ! Public methods for 2D tables
   public :: LT2_create           ! Create a new lookup table
   public :: LT2_create_from_data ! Create a new lookup table from existing data
   public :: LT2_set_col          ! Set one table column
@@ -109,6 +109,7 @@ module m_lookup_table
   public :: LT2_get_col          ! Interpolate one column
   public :: LT2_get_col_at_loc   ! Get one column at location
 
+  ! Public methods for 3D tables
   public :: LT3_create           ! Create a new lookup table
   public :: LT3_create_from_data ! Create a new lookup table from existing data
   public :: LT3_get_loc          ! Get the index (row) of a value
@@ -442,9 +443,12 @@ contains
     real(dp), allocatable      :: tmp(:, :), c1(:), c2(:)
     integer                    :: ix
 
+    allocate(c1(my_lt%n_points(1)))
+    allocate(c2(my_lt%n_points(2)))
+    allocate(tmp(my_lt%n_points(1), size(x2)))
+
     c1 = LT_get_xdata(my_lt%x_min(1), my_lt%dx(1), my_lt%n_points(1))
     c2 = LT_get_xdata(my_lt%x_min(2), my_lt%dx(2), my_lt%n_points(2))
-    allocate(tmp(my_lt%n_points(1), size(x2)))
 
     ! Interpolate along first coordinate
     do ix = 1, size(x2)
