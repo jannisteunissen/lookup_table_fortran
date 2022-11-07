@@ -2,10 +2,13 @@ program usage_example
   use m_lookup_table
 
   implicit none
-  integer, parameter   :: dp = kind(0.0d0)
+  integer, parameter :: dp         = kind(0.0d0)
+  integer, parameter :: table_size = 99
+  integer, parameter :: test_size  = 100*1000
 
-  call test_linear_data(21, 10000)
-  call test_valid_location(21, 10000)
+  call test_linear_data(table_size, test_size)
+  call test_linear_extrapolation(table_size, test_size)
+  call test_valid_location(table_size, test_size)
 
 contains
 
@@ -16,7 +19,7 @@ contains
     real(dp)              :: x_sample(2) = [-2.0_dp, 2.0_dp]
     real(dp), allocatable :: x_test(:), y(:)
     real(dp)              :: max_deviation
-    real(dp), parameter   :: tolerance = 1e-14_dp
+    real(dp), parameter   :: tolerance = 5e-14_dp
 
     print *, "test_linear_data"
 
@@ -48,6 +51,44 @@ contains
     end if
 
   end subroutine test_linear_data
+
+  subroutine test_linear_extrapolation(table_size, n_samples)
+    integer, intent(in)   :: table_size, n_samples
+    type(LT_t)            :: my_lt
+    real(dp)              :: x(2)        = [-1.0_dp, 1.0_dp]
+    real(dp)              :: x_sample(2) = [-2.0_dp, 2.0_dp]
+    real(dp), allocatable :: x_test(:), y(:)
+    real(dp)              :: max_deviation
+    real(dp), parameter   :: tolerance = 5e-14_dp
+
+    print *, "test_linear_extrapolation"
+
+    my_lt = LT_create(x(1), x(2), n_points=table_size, n_cols=1, &
+       xspacing=LT_xspacing_linear, extrapolate_above=.true.)
+
+    call LT_set_col(my_lt, 1, x, f_linear(x))
+
+    allocate(x_test(n_samples))
+    allocate(y(n_samples))
+
+    call random_number(x_test)
+    x_test = x_sample(1) + (x_sample(2) - x_sample(1)) * x_test
+
+    where (x_test < x(1))
+       y = f_linear(x(1))
+    elsewhere
+       y = f_linear(x_test)
+    end where
+
+    max_deviation = maxval(abs(LT_get_col(my_lt, 1, x_test) - y))
+
+    if (max_deviation > tolerance) then
+       print *, "FAILED: too large deviation from solution", max_deviation
+    else
+       print *, "PASSED"
+    end if
+
+  end subroutine test_linear_extrapolation
 
   subroutine test_valid_location(table_size, n_samples)
     integer, intent(in)         :: table_size, n_samples
@@ -107,7 +148,7 @@ contains
 
   real(dp) elemental function f_linear(x)
     real(dp), intent(in) :: x
-    f_linear = 5 * x + 2
+    f_linear = -1.5_dp * x + 0.5_dp
   end function f_linear
 
 end program
