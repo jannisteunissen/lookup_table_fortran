@@ -524,7 +524,7 @@ contains
        my_loc%low_frac = 1
     end where
 
-    where (my_loc%low_ix >= my_lt%n_points)
+    where (my_loc%low_ix >= my_lt%n_points - 1)
        my_loc%low_ix   = my_lt%n_points - 1
        my_loc%low_frac = 0
     end where
