@@ -341,7 +341,7 @@ contains
     if (frac <= 0) then
        my_loc%low_ix   = 1
        my_loc%low_frac = 1
-    else if (frac >= my_lt%n_points) then
+    else if (frac >= my_lt%n_points - 1) then
        my_loc%low_ix   = my_lt%n_points - 1
        my_loc%low_frac = 0
     else
